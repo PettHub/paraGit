@@ -30,15 +30,20 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 handle(St, {join, Channel}) ->
     % TODO: Implement this function
     % {reply, ok, St} ;
-    server:start(Channel),
-    {reply, ok, St};
+    Pid = server:start(server),
+    Pid ! join,
+    {reply, ok, St}; %should send error if something's wrong?
+
     %{reply, {error, not_implemented, "join not implemented"}, St} ;
 
 % Leave channel
 handle(St, {leave, Channel}) ->
     % TODO: Implement this function
-    % {reply, ok, St} ;
-    {reply, {error, not_implemented, "leave not implemented"}, St} ;
+    % stänga ner servern?
+    whereis(server) ! leave,
+    {reply, ok, St};
+    %{reply, {error, not_implemented, "leave not implemented"}, St} ;
+
 
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
