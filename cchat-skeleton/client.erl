@@ -31,7 +31,7 @@ handle(St, {join, Channel}) ->
     % TODO: Implement this function
     % {reply, ok, St} ;
     Pid = server:start(server),
-    Pid ! join,
+    Pid ! {request, self(), "pekas", {join, Channel}},
     {reply, ok, St}; %should send error if something's wrong?
 
     %{reply, {error, not_implemented, "join not implemented"}, St} ;
