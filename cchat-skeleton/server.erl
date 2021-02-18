@@ -81,8 +81,9 @@ handle(ServerSt, {nick, OldNick, NewNick}) ->
     % does someone else already have this nick?
     case lists:member(NewNick, ServerSt#server_st.nicks) of 
         false ->
+            % nick not taken
             NewServerSt = ServerSt#server_st{nicks= [NewNick | lists:delete(OldNick,ServerSt#server_st.nicks)]},
-            % nick changed
+            % changed nick
             {reply, nick_changed, NewServerSt};
         true ->
             % nick already taken
@@ -110,8 +111,9 @@ channelhandle(ChannelSt, {join, Client}) ->
 channelhandle(ChannelSt, {leave, Client}) ->
     case lists:member(Client, ChannelSt#channel_st.clients) of    
         true -> 
+            % user is in channel
             NewChannelState = ChannelSt#channel_st{clients= lists:delete(Client,ChannelSt#channel_st.clients)},
-            % user left channel
+            % remove user from channel
             {reply, left_channel, NewChannelState};
         false ->
             % User not joined

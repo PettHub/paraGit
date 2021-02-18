@@ -66,14 +66,6 @@ handle(ClientSt, {message_send, Channel, Msg}) ->
             {reply, {error, user_not_joined, "User not joined"}, ClientSt}
     end;
 
-% ---------------------------------------------------------------------------
-% The cases below do not need to be changed...
-% But you should understand how they work!
-
-% Get current nick
-handle(ClientSt, whoami) ->
-    {reply, ClientSt#client_st.nick, ClientSt};
-
 % Change nick
 handle(ClientSt, {nick, NewNick}) ->
     Result = (catch genserver:request(ClientSt#client_st.server,{nick, ClientSt#client_st.nick, NewNick})),
@@ -85,6 +77,16 @@ handle(ClientSt, {nick, NewNick}) ->
         nick_taken ->
             {reply, {error, nick_taken, "Nick already taken"}, ClientSt}
     end;
+
+% ---------------------------------------------------------------------------
+% The cases below do not need to be changed...
+% But you should understand how they work!
+
+% Get current nick
+handle(ClientSt, whoami) ->
+    {reply, ClientSt#client_st.nick, ClientSt};
+
+
 
 % Incoming message (from channel, to GUI)
 handle(ClientSt = #client_st{gui = GUI}, {message_receive, Channel, Nick, Msg}) ->
