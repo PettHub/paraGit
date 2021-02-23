@@ -95,8 +95,6 @@ handle(ClientSt = #client_st{gui = GUI}, {message_receive, Channel, Nick, Msg}) 
 % Quit client via GUI
 handle(ClientSt, quit) ->
     % Any cleanup should happen here, but this is optional
-    % sets new nick to empty string in order to free up the users nick
-    (casesgenserver:request(ClientSt#client_st.server,{nick, ClientSt#client_st.nick, ""})),
     {reply, ok, ClientSt};
 
 % Catch-all for any unhandled requeClientSts
