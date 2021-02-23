@@ -2,8 +2,8 @@
 -export([start/1,stop/1]).
 
 -record(server_st, {
-    channels =[],   % channels on this server
-    nicks    =[]    % nicks on this server
+    channels =[],   % The channels on this server
+    nicks    =[]    % The nicks on this server
     }).
 
 initial_state(Channels,Nicks) ->
@@ -11,7 +11,6 @@ initial_state(Channels,Nicks) ->
       channels = Channels,
       nicks = Nicks
     }.
-
 
 % Start a new server process with the given name
 % Do not change the signature of this function.
@@ -25,58 +24,58 @@ start(ServerAtom) ->
 % together with any other associated processes
 stop(ServerAtom) ->
     % Return ok
-    genserver:request(ServerAtom,stop_channels),
-    genserver:stop(ServerAtom).
+    genserver:request(ServerAtom, stop_channels), 
+    genserver:stop(ServerAtom). 
 
 % Join a channel
 handle(ServerSt, {join, Channel, Client}) ->
-    % does the channel already exist?
+    % Checks if the channel already exists
     case lists:member(Channel, ServerSt#server_st.channels) of    
         false ->
-            %start new channel
+            %If not: start new channel
             genserver:start(list_to_atom(Channel), channel:initial_state(Channel), fun channel:handle/2);
         true ->
-            % channel already existing
+            % If it does exist: do nothing
             true
     end,
 
-    %try to join channel
-    case (catch genserver:request(list_to_atom(Channel),{join,Client})) of
+    %Try to join channel
+    case (catch genserver:request(list_to_atom(Channel),{join,Client})) of %Call for the channel handle function (join) using channel process
         failed -> 
-            % User already joined
+            % User has already joined
             {reply, user_already_joined , ServerSt};
         joined -> 
-            % Joined channel
-            {reply, joined_channel, ServerSt#server_st{channels=[Channel | ServerSt#server_st.channels]}}
+            % User successfully joined channel (also adds channel to server record)
+            {reply, joined_channel, ServerSt#server_st{channels = [Channel | ServerSt#server_st.channels]}}
     end;
 
-% Leave channel
+% Leave a channel
 handle(ServerSt, {leave, Channel, Client}) ->
+    %Checks if the channel exists
     case lists:member(Channel, ServerSt#server_st.channels) of    
         false ->
-            % channel doesn't exist
-            {reply, channel_not_existing, ServerSt};
+            % Channel doesn't exist: return tuple with channel_non_existent
+            {reply, channel_non_existent, ServerSt};
         true ->
-            % channel is existing and the user will leave if it has joined before
+            % Channel exists: delegate to the channel handle function (leave) using channel process
             case (catch genserver:request(list_to_atom(Channel),{leave, Client})) of
                 user_not_joined ->
-                    {reply, user_not_joined, ServerSt};
+                    {reply, user_not_joined, ServerSt}; %If user hasn't joined, return atom user_not_joined
                 left_channel ->
-                    {reply, left_channel, ServerSt}
+                    {reply, left_channel, ServerSt} %User sucessfully left the channel
             end
     end;
 
-% Change nick
+% Change your nick (including distinction assignment)
 handle(ServerSt, {nick, OldNick, NewNick}) ->
-    % does someone else already have this nick?
+    % Check if anyone else has the nick you want to change to
     case lists:member(NewNick, ServerSt#server_st.nicks) of 
         false ->
-            % nick not taken
-            NewServerSt = ServerSt#server_st{nicks= [NewNick | lists:delete(OldNick,ServerSt#server_st.nicks)]},
-            % changed nick
+            % If not taken: Change the nick (remove old nick from record and add new nick) and return tuple with nick_changed so client can change its record too
+            NewServerSt = ServerSt#server_st{nicks = [NewNick | lists:delete(OldNick,ServerSt#server_st.nicks)]},
             {reply, nick_changed, NewServerSt};
         true ->
-            % nick already taken
+            % If taken: return tuple with nick_taken
             {reply, nick_taken, ServerSt}
     end;
 

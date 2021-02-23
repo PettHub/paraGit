@@ -29,14 +29,14 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 
 % Join channel
 handle(ClientSt, {join, Channel}) ->
-    Result = (catch genserver:request(ClientSt#client_st.server,{join, Channel, self()})),
-    case Result of
+    Result = (catch genserver:request(ClientSt#client_st.server,{join, Channel, self()})), %catch returns good result or tuple {'EXIT', Reason} on an error
+    case Result of %result returned from genserver after running handle function in server.erl
         {'EXIT',_} ->
-            {reply, {error, server_not_reached, "Server does not respond: join"}, ClientSt};
+            {reply, {error, server_not_reached, "Server is non-responsive (join)"}, ClientSt}; %Error handling
         joined_channel ->
-            {reply,ok,ClientSt};
+            {reply,ok,ClientSt}; %Successful join
         user_already_joined -> 
-            {reply,{error, user_already_joined, "User already joined"},ClientSt}
+            {reply,{error, user_already_joined, "User has already joined"},ClientSt} %Unsucessful join, return with tuple containing error message for user
     end;
 
 
@@ -45,37 +45,38 @@ handle(ClientSt, {leave, Channel}) ->
     Result = (catch genserver:request(ClientSt#client_st.server,{leave, Channel, self()})),
     case Result of
         {'EXIT',_} ->
-            {reply, {error, server_not_reached, "Server does not respond: leave"}, ClientSt};
+            {reply, {error, server_not_reached, "Server is non-responsive (leave)"}, ClientSt}; %Error handling
         left_channel ->
-            {reply,ok,ClientSt};
+            {reply,ok,ClientSt}; %Successful leave
         user_not_joined -> 
-            {reply,{error, user_not_joined, "User not joined"}, ClientSt};
-        channel_not_existing ->
-            {reply, {error, channel_not_existing, "Channel not existing"}, ClientSt}
+            {reply,{error, user_not_joined, "User has not joined the channel"}, ClientSt}; %Unsucessful leave, return with tuple containing error message for user
+        channel_non_existent ->
+            {reply, {error, channel_non_existent, "Channel does not exist"}, ClientSt} %Unsucessful leave, return with tuple containing error message for user
     end;
 
 % Sending message (from GUI, to channel)
 handle(ClientSt, {message_send, Channel, Msg}) ->
-    Result = (catch genserver:request(list_to_atom(Channel),{message_send, Msg, self(), ClientSt#client_st.nick})),
+    Result = (catch genserver:request(list_to_atom(Channel),{message_send, Msg, self(), ClientSt#client_st.nick})), %Delegate to channel process (handle function)
     case Result of 
         {'EXIT',_} ->
-            {reply, {error, server_not_reached, "Server does not respond: send"}, ClientSt};
+            {reply, {error, server_not_reached, "Server is non-responsive (send)"}, ClientSt}; %Error handling
         message_send ->
-            {reply, ok, ClientSt};
+            {reply, ok, ClientSt}; %Successfully sent message
         user_not_joined ->
-            {reply, {error, user_not_joined, "User not joined"}, ClientSt}
+            {reply, {error, user_not_joined, "User has not joined the channel"}, ClientSt} %Unsucessful message send, return with tuple containing error message for user
     end;
 
-% Change nick
+% This case is only relevant for the distinction assignment!
+% Change nick (including check)
 handle(ClientSt, {nick, NewNick}) ->
-    Result = (catch genserver:request(ClientSt#client_st.server,{nick, ClientSt#client_st.nick, NewNick})),
+    Result = (catch genserver:request(ClientSt#client_st.server,{nick, ClientSt#client_st.nick, NewNick})), %Delegate to server (handle function)
     case Result of
         {'EXIT',_} ->
-            {reply, {error, server_not_reached, "Server does not respond: nick"}, ClientSt};
+            {reply, {error, server_not_reached, "Server is non-responsive (nick)"}, ClientSt}; %Error handling
         nick_changed ->
-            {reply, ok, ClientSt#client_st{nick= NewNick}};
+            {reply, ok, ClientSt#client_st{nick = NewNick}}; %Nick change successful in server, now change nick in client record too
         nick_taken ->
-            {reply, {error, nick_taken, "Nick already taken"}, ClientSt}
+            {reply, {error, nick_taken, "Nick already taken"}, ClientSt} %Nick change unsuccessful in server, return error message to GUI
     end;
 
 % ---------------------------------------------------------------------------
@@ -85,8 +86,6 @@ handle(ClientSt, {nick, NewNick}) ->
 % Get current nick
 handle(ClientSt, whoami) ->
     {reply, ClientSt#client_st.nick, ClientSt};
-
-
 
 % Incoming message (from channel, to GUI)
 handle(ClientSt = #client_st{gui = GUI}, {message_receive, Channel, Nick, Msg}) ->
