@@ -50,21 +50,21 @@ handle(ServerSt, {join, Channel, Client}) ->
     end;
 
 % Leave a channel
-handle(ServerSt, {leave, Channel, Client}) ->
+%handle(ServerSt, {leave, Channel, Client}) ->
     %Checks if the channel exists
-    case lists:member(Channel, ServerSt#server_st.channels) of    
-        false ->
+ %   case lists:member(Channel, ServerSt#server_st.channels) of    
+ %       false ->
             % Channel doesn't exist: return tuple with channel_non_existent
-            {reply, channel_non_existent, ServerSt};
-        true ->
+ %           {reply, channel_non_existent, ServerSt};
+ %       true ->
             % Channel exists: delegate to the channel handle function (leave) using channel process
-            case (catch genserver:request(list_to_atom(Channel),{leave, Client})) of
-                user_not_joined ->
-                    {reply, user_not_joined, ServerSt}; %If user hasn't joined, return atom user_not_joined
-                left_channel ->
-                    {reply, left_channel, ServerSt} %User sucessfully left the channel
-            end
-    end;
+ %           case (catch genserver:request(list_to_atom(Channel),{leave, Client})) of
+ %               user_not_joined ->
+ %                   {reply, user_not_joined, ServerSt}; %If user hasn't joined, return atom user_not_joined
+ %               left_channel ->
+ %                   {reply, left_channel, ServerSt} %User sucessfully left the channel
+ %           end
+  %  end;
 
 % Change your nick (including distinction assignment)
 handle(ServerSt, {nick, OldNick, NewNick}) ->

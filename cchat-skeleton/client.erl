@@ -1,6 +1,7 @@
 -module(client).
 -export([handle/2, initial_state/3]).
 
+
 % This record defines the structure of the state of a client.
 % Add whatever other fields you need.
 -record(client_st, {
@@ -16,8 +17,7 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
     #client_st{
         gui = GUIAtom,
         nick = Nick,
-        server = ServerAtom
-}.
+        server = ServerAtom}.
 
 % handle/2 handles each kind of request from GUI
 % Parameters:
@@ -29,30 +29,40 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 
 % Join channel
 handle(ClientSt, {join, Channel}) ->
-    Result = (catch genserver:request(ClientSt#client_st.server,{join, Channel, self()})), %catch returns good result or tuple {'EXIT', Reason} on an error
-    case Result of %result returned from genserver after running handle function in server.erl
-        {'EXIT',_} ->
-            {reply, {error, server_not_reached, "Server is non-responsive (join)"}, ClientSt}; %Error handling
+    case catch genserver:request(ClientSt#client_st.server,{join, Channel, self()}, 1000) of %result returned from genserver after running handle function in server.erl
         joined_channel ->
             {reply,ok,ClientSt}; %Successful join
         user_already_joined -> 
-            {reply,{error, user_already_joined, "User has already joined"},ClientSt} %Unsucessful join, return with tuple containing error message for user
+            {reply,{error, user_already_joined, "User has already joined"},ClientSt}; %Unsucessful join, return with tuple containing error message for user
+        {'EXIT',_} ->
+            {reply, {error, server_not_reached, "Server is non-responsive (join)"}, ClientSt} %Error handling
     end;
 
 
 % Leave channel
 handle(ClientSt, {leave, Channel}) ->
-    Result = (catch genserver:request(ClientSt#client_st.server,{leave, Channel, self()})),
-    case Result of
+    ChannelAtom = list_to_atom(Channel),
+    Result = (catch genserver:request(ChannelAtom, {leave, self()})) ,
+    case Result of 
         {'EXIT',_} ->
-            {reply, {error, server_not_reached, "Server is non-responsive (leave)"}, ClientSt}; %Error handling
+           {reply, {error, server_not_reached, "Server is non-responsive (leave)"}, ClientSt}; %Error handling
         left_channel ->
             {reply,ok,ClientSt}; %Successful leave
         user_not_joined -> 
-            {reply,{error, user_not_joined, "User has not joined the channel"}, ClientSt}; %Unsucessful leave, return with tuple containing error message for user
-        channel_non_existent ->
-            {reply, {error, channel_non_existent, "Channel does not exist"}, ClientSt} %Unsucessful leave, return with tuple containing error message for user
+            {reply,{error, user_not_joined, "User has not joined the channel"}, ClientSt} %Unsucessful leave, return with tuple containing error message for user
     end;
+
+   % Result = (catch genserver:request(ClientSt#client_st.server,{leave, Channel, self()})),
+    %case Result of
+    %    {'EXIT',_} ->
+    %        {reply, {error, server_not_reached, "Server is non-responsive (leave)"}, ClientSt}; %Error handling
+    %    left_channel ->
+    %        {reply,ok,ClientSt}; %Successful leave
+    %    user_not_joined -> 
+    %        {reply,{error, user_not_joined, "User has not joined the channel"}, ClientSt}; %Unsucessful leave, return with tuple containing error message for user
+    %    channel_non_existent ->
+    %        {reply, {error, channel_non_existent, "Channel does not exist"}, ClientSt} %Unsucessful leave, return with tuple containing error message for user
+    %end;
 
 % Sending message (from GUI, to channel)
 handle(ClientSt, {message_send, Channel, Msg}) ->
