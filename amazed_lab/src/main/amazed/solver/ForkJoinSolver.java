@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
 public class ForkJoinSolver
     extends SequentialSolver
 {
-    static ConcurrentSkipListSet<Integer> visited;
+    static ConcurrentSkipListSet<Integer> visited = new ConcurrentSkipListSet<>();
     Stack<Integer> frontier;
-    static boolean start;
+    //static boolean start = true;
     Integer current;
     Integer player;
 
@@ -51,18 +51,15 @@ public class ForkJoinSolver
         this(maze);
         this.forkAfter = forkAfter;
         frontier = new Stack<>();
-        if (ForkJoinSolver.start) {
-            frontier.push(maze.start());
-            predecessor = new HashMap<>();
-            start = false;
-            player = maze.newPlayer(frontier.peek());
-        }
+        frontier.push(maze.start());
+        predecessor = new HashMap<>();
+        player = maze.newPlayer(frontier.peek());
     }
 
     private ForkJoinSolver(Maze maze, Integer start, Map<Integer, Integer> predecessor){
         this(maze);
         frontier = new Stack<>();
-        frontier.add(start);
+        frontier.push(start);
         player = maze.newPlayer(start);
         this.predecessor = new HashMap<>(predecessor);
     }
@@ -98,16 +95,16 @@ public class ForkJoinSolver
         frontier.addAll(neighbours); //add all the neighbours to the frontier
         ForkJoinSolver f2 = null, f3 = null;
         switch (frontier.size()){
-            case 0:
-                return mapToList(predecessor);
+            //case 0:
+            //    return null;
             case 3:
-                f3 = new ForkJoinSolver(maze, frontier.pop(), new HashMap<>()); //if there is more than 2
+                f3 = new ForkJoinSolver(maze, frontier.pop(), new HashMap(predecessor)); //if there is more than 2
                 f3.fork();
             case 2:
-                f2 = new ForkJoinSolver(maze, frontier.pop(), new HashMap<>()); //if there is more than 1
+                f2 = new ForkJoinSolver(maze, frontier.pop(), new HashMap(predecessor)); //if there is more than 1
                 f2.fork();
             case 1: //if there is only 1 way to go
-                predecessor.put(current, frontier.peek());
+                predecessor.put(frontier.peek(), current);
                 parallelSearch();
         }
         if (f3 != null){
@@ -132,10 +129,15 @@ public class ForkJoinSolver
     private List<Integer> mapToList(Map<Integer, Integer> map){
         List<Integer> list = new ArrayList<>();
         Integer pointer = current;
-        do{
+        if (pointer == null)
+            return list;
+        
+        while (map.get(pointer) != 
+            maze.start())
+        {
             list.add(pointer);
             pointer = map.get(pointer);
-        }while (map.get(pointer) != null);
+        }
         return list;
     }
 }
