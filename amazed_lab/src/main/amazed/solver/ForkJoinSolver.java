@@ -22,6 +22,7 @@ public class ForkJoinSolver
     Stack<Integer> frontier;
     static boolean start;
     Integer current;
+    Integer player;
 
     /**
      * Creates a solver that searches in <code>maze</code> from the
@@ -54,6 +55,7 @@ public class ForkJoinSolver
             frontier.push(maze.start());
             predecessor = new HashMap<>();
             start = false;
+            player = maze.newPlayer(frontier.peek());
         }
     }
 
@@ -61,6 +63,7 @@ public class ForkJoinSolver
         this(maze);
         frontier = new Stack<>();
         frontier.add(start);
+        player = maze.newPlayer(start);
         this.predecessor = new HashMap<>(predecessor);
     }
 
@@ -87,6 +90,7 @@ public class ForkJoinSolver
     private List<Integer> parallelSearch()
     {
         current = frontier.pop();
+        maze.move(player, current);
         visited.add(current);
         if (maze.hasGoal(current)) return mapToList(predecessor); //if we encounter a goal, return
         Set<Integer> neighbours = maze.neighbors(current);
