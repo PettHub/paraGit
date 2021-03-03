@@ -126,19 +126,34 @@ public class ForkJoinSolver
         return null;
     }
 
+    protected List<Integer> mapToList(Map<Integer, Integer> map) {
+        List<Integer> path = new LinkedList<>();
+        Integer from = maze.start();
+        while (current != from) {
+            path.add(current);
+            current = map.get(current);
+            if (current == null)
+                return null;
+        }
+        path.add(from);
+        Collections.reverse(path);
+        return path;
+    }
+/*
     private List<Integer> mapToList(Map<Integer, Integer> map){
         List<Integer> list = new ArrayList<>();
         Integer pointer = current;
         if (pointer == null)
             return list;
         System.out.println(maze.start());
-        while (map.get(pointer) != maze.start())
+        do
         {
             System.out.println(pointer);
             System.out.println(map.get(pointer));
             list.add(pointer);
             pointer = map.get(pointer);
-        }
+        } while (map.get(pointer) != null);
         return list;
     }
+    */
 }
