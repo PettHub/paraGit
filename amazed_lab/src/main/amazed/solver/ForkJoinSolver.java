@@ -131,10 +131,11 @@ public class ForkJoinSolver
         Integer pointer = current;
         if (pointer == null)
             return list;
-        
-        while (map.get(pointer) != 
-            maze.start())
+        System.out.println(maze.start());
+        while (map.get(pointer) != maze.start())
         {
+            System.out.println(pointer);
+            System.out.println(map.get(pointer));
             list.add(pointer);
             pointer = map.get(pointer);
         }
