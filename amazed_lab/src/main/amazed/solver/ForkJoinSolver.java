@@ -2,11 +2,7 @@ package amazed.solver;
 
 import amazed.maze.Maze;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
@@ -22,6 +18,11 @@ import java.util.concurrent.ConcurrentSkipListSet;
 public class ForkJoinSolver
     extends SequentialSolver
 {
+    static ConcurrentSkipListSet<Integer> visited;
+    Stack<Integer> frontier;
+    static boolean start;
+    Integer current;
+
     /**
      * Creates a solver that searches in <code>maze</code> from the
      * start node to a goal.
@@ -48,7 +49,23 @@ public class ForkJoinSolver
     {
         this(maze);
         this.forkAfter = forkAfter;
+        frontier = new Stack<>();
+        if (ForkJoinSolver.start) {
+            frontier.push(maze.start());
+            predecessor = new HashMap<>();
+            start = false;
+        }
     }
+
+    private ForkJoinSolver(Maze maze, Integer start, Map<Integer, Integer> predecessor){
+        this(maze);
+        frontier = new Stack<>();
+        frontier.add(start);
+        this.predecessor = new HashMap<>(predecessor);
+    }
+
+    private void preFork(){}
+    private void preJoin(){}
 
     /**
      * Searches for and returns the path, as a list of node
@@ -69,6 +86,52 @@ public class ForkJoinSolver
 
     private List<Integer> parallelSearch()
     {
+        current = frontier.pop();
+        visited.add(current);
+        if (maze.hasGoal(current)) return mapToList(predecessor); //if we encounter a goal, return
+        Set<Integer> neighbours = maze.neighbors(current);
+        neighbours.removeAll(visited); //filter out the neighbours which are visited
+        frontier.addAll(neighbours); //add all the neighbours to the frontier
+        ForkJoinSolver f2 = null, f3 = null;
+        switch (frontier.size()){
+            case 0:
+                return mapToList(predecessor);
+            case 3:
+                f3 = new ForkJoinSolver(maze, frontier.pop(), new HashMap<>()); //if there is more than 2
+                f3.fork();
+            case 2:
+                f2 = new ForkJoinSolver(maze, frontier.pop(), new HashMap<>()); //if there is more than 1
+                f2.fork();
+            case 1: //if there is only 1 way to go
+                predecessor.put(current, frontier.peek());
+                parallelSearch();
+        }
+        if (f3 != null){
+            List<Integer> list3 = f3.join();
+            for (Integer i : list3){
+                if (maze.hasGoal(i)) return list3;
+            }
+        }
+        if (f2 != null){
+            List<Integer> list2 = f2.join();
+            for (Integer i : list2){
+                if (maze.hasGoal(i)) return list2;
+            }
+        }
+        List<Integer> list1 = mapToList(predecessor);
+        for (Integer i : list1){
+            if (maze.hasGoal(i)) return list1;
+        }
         return null;
+    }
+
+    private List<Integer> mapToList(Map<Integer, Integer> map){
+        List<Integer> list = new ArrayList<>();
+        Integer pointer = current;
+        do{
+            list.add(pointer);
+            pointer = map.get(pointer);
+        }while (map.get(pointer) != null);
+        return list;
     }
 }
