@@ -4,6 +4,7 @@ import amazed.maze.Maze;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <code>ForkJoinSolver</code> implements a solver for
@@ -23,7 +24,8 @@ public class ForkJoinSolver
     //static boolean start = true;
     Integer current;
     Integer player;
-
+    static AtomicInteger counter = new AtomicInteger(0);
+    int count = 0;
     /**
      * Creates a solver that searches in <code>maze</code> from the
      * start node to a goal.
@@ -56,12 +58,13 @@ public class ForkJoinSolver
         player = maze.newPlayer(frontier.peek());
     }
 
-    private ForkJoinSolver(Maze maze, Integer start, Map<Integer, Integer> predecessor){
+    private ForkJoinSolver(Maze maze, Integer start, Map<Integer, Integer> predecessor, int count){
         this(maze);
         frontier = new Stack<>();
         frontier.push(start);
         player = maze.newPlayer(start);
         this.predecessor = new HashMap<>(predecessor);
+        this.count = count;
     }
 
     private void preFork(){}
@@ -81,16 +84,20 @@ public class ForkJoinSolver
     @Override
     public List<Integer> compute()
     {
-        return parallelSearch(new ArrayList<>());
+        System.out.println(count + " was created");
+        return parallelSearch(new HashSet<>());
     }
 
 
-    private List<Integer> parallelSearch(List<ForkJoinSolver> forks)
+    private List<Integer> parallelSearch(HashSet<ForkJoinSolver> forks)
     {
         current = frontier.pop();
         maze.move(player, current);
         visited.add(current);
-        if (maze.hasGoal(current)) return MapToList.compute(predecessor, maze.start(), current); //if we encounter a goal, return
+        if (maze.hasGoal(current)){
+            System.out.println(count + " found it");
+            return MapToList.compute(predecessor, maze.start(), current); //if we encounter a goal, return
+        }
         Set<Integer> neighbours = maze.neighbors(current);
         neighbours.removeAll(visited); //filter out the neighbours which are visited
         frontier.addAll(neighbours); //add all the neighbours to the frontier
@@ -99,15 +106,23 @@ public class ForkJoinSolver
                 predecessor.put(frontier.peek(), current);
                 parallelSearch(forks);
             }
-            ForkJoinSolver fork = new ForkJoinSolver(maze, frontier.pop(), new HashMap(predecessor));
+            else{
+            Map<Integer, Integer> tmpMap = new HashMap(predecessor);
+            Integer tmpStart = frontier.pop();
+            tmpMap.put(tmpStart, current);
+            ForkJoinSolver fork = new ForkJoinSolver(maze, tmpStart, tmpMap, counter.incrementAndGet());
             fork.fork();
             forks.add(fork);
         }
+        }
         for (ForkJoinSolver f : forks) {
             List<Integer> list = f.join();
-            for (Integer i : list) {
+            System.out.println(count + " joined");
+            if (!list.isEmpty()) return list;
+            /*for (Integer i : list) {
                 if (maze.hasGoal(i)) return list;
-            }
+            }*/
+
         }
         return new ArrayList<>();
     }
@@ -118,15 +133,19 @@ public class ForkJoinSolver
             if (current == null) throw new NullPointerException("current");
             if (start == null) throw new NullPointerException("start");
 
-            while(!start.equals(current)){
+            do{
                 path.add(current);
                 current = map.get(current);
                 if(current == null)
                     return path;
-            }
+            }while(!start.equals(current));
+            path.add(start);
             Collections.reverse(path);
+            System.out.println(map);
+            System.out.println(path);
             return path;
         }
+    }
 
     /*
     private List<Integer> parallelSearch()
