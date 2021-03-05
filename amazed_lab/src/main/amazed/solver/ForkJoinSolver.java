@@ -81,9 +81,54 @@ public class ForkJoinSolver
     @Override
     public List<Integer> compute()
     {
-        return parallelSearch();
+        return parallelSearch(new ArrayList<>());
     }
 
+
+    private List<Integer> parallelSearch(List<ForkJoinSolver> forks)
+    {
+        current = frontier.pop();
+        maze.move(player, current);
+        visited.add(current);
+        if (maze.hasGoal(current)) return MapToList.compute(predecessor, maze.start(), current); //if we encounter a goal, return
+        Set<Integer> neighbours = maze.neighbors(current);
+        neighbours.removeAll(visited); //filter out the neighbours which are visited
+        frontier.addAll(neighbours); //add all the neighbours to the frontier
+        while (!frontier.empty()) {
+            if (frontier.size() == 1) { //if there is only 1 way to go
+                predecessor.put(frontier.peek(), current);
+                parallelSearch(forks);
+            }
+            ForkJoinSolver fork = new ForkJoinSolver(maze, frontier.pop(), new HashMap(predecessor));
+            fork.fork();
+            forks.add(fork);
+        }
+        for (ForkJoinSolver f : forks) {
+            List<Integer> list = f.join();
+            for (Integer i : list) {
+                if (maze.hasGoal(i)) return list;
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private static class MapToList {
+        public static List<Integer> compute(Map<Integer, Integer> map, Integer start, Integer current){
+            List<Integer> path = new ArrayList<>();
+            if (current == null) throw new NullPointerException("current");
+            if (start == null) throw new NullPointerException("start");
+
+            while(!start.equals(current)){
+                path.add(current);
+                current = map.get(current);
+                if(current == null)
+                    return path;
+            }
+            Collections.reverse(path);
+            return path;
+        }
+
+    /*
     private List<Integer> parallelSearch()
     {
         current = frontier.pop();
@@ -124,23 +169,5 @@ public class ForkJoinSolver
             if (maze.hasGoal(i)) return list1;
         }
         return null;
-    }
-
-/*
-    private List<Integer> mapToList(Map<Integer, Integer> map){
-        List<Integer> list = new ArrayList<>();
-        Integer pointer = current;
-        if (pointer == null)
-            return list;
-        System.out.println(maze.start());
-        do
-        {
-            System.out.println(pointer);
-            System.out.println(map.get(pointer));
-            list.add(pointer);
-            pointer = map.get(pointer);
-        } while (map.get(pointer) != null);
-        return list;
-    }
-    */
+    }*/
 }
