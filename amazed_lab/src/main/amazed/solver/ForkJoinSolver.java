@@ -89,7 +89,7 @@ public class ForkJoinSolver
         current = frontier.pop();
         maze.move(player, current);
         visited.add(current);
-        if (maze.hasGoal(current)) return mapToList(predecessor); //if we encounter a goal, return
+        if (maze.hasGoal(current)) return MapToList.compute(predecessor, maze.start(), current); //if we encounter a goal, return
         Set<Integer> neighbours = maze.neighbors(current);
         neighbours.removeAll(visited); //filter out the neighbours which are visited
         frontier.addAll(neighbours); //add all the neighbours to the frontier
@@ -119,26 +119,13 @@ public class ForkJoinSolver
                 if (maze.hasGoal(i)) return list2;
             }
         }
-        List<Integer> list1 = mapToList(predecessor);
+        List<Integer> list1 = MapToList.compute(predecessor, maze.start(), current);
         for (Integer i : list1){
             if (maze.hasGoal(i)) return list1;
         }
         return null;
     }
 
-    protected List<Integer> mapToList(Map<Integer, Integer> map) {
-        List<Integer> path = new LinkedList<>();
-        Integer from = maze.start();
-        while (current != from) {
-            path.add(current);
-            current = map.get(current);
-            if (current == null)
-                return null;
-        }
-        path.add(from);
-        Collections.reverse(path);
-        return path;
-    }
 /*
     private List<Integer> mapToList(Map<Integer, Integer> map){
         List<Integer> list = new ArrayList<>();
