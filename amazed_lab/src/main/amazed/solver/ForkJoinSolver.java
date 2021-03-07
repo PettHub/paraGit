@@ -96,7 +96,7 @@ public class ForkJoinSolver
         visited.add(current);
         if (maze.hasGoal(current)){
             System.out.println(count + " found it");
-            return MapToList.compute(predecessor, maze.start(), current); //if we encounter a goal, return
+            return MapToList.compute(predecessor, maze.start(), current); //if we encounter a goal, return path
         }
         Set<Integer> neighbours = maze.neighbors(current);
         neighbours.removeAll(visited); //filter out the neighbours which are visited
@@ -104,7 +104,7 @@ public class ForkJoinSolver
         while (!frontier.empty()) {
             if (frontier.size() == 1) { //if there is only 1 way to go
                 predecessor.put(frontier.peek(), current);
-                parallelSearch(forks);
+                return parallelSearch(forks);
             }
             else{
             Map<Integer, Integer> tmpMap = new HashMap(predecessor);
@@ -116,15 +116,17 @@ public class ForkJoinSolver
         }
         }
         for (ForkJoinSolver f : forks) {
-            List<Integer> list = f.join();
-            System.out.println(count + " joined");
-            if (!list.isEmpty()) return list;
+            if(f.join() != null) {
+                List<Integer> list = f.join();
+                System.out.println(count + " joined");
+                if (!list.isEmpty()) return list;
+            }
             /*for (Integer i : list) {
                 if (maze.hasGoal(i)) return list;
             }*/
 
         }
-        return new ArrayList<>();
+        return null;
     }
 
     private static class MapToList {
@@ -132,7 +134,7 @@ public class ForkJoinSolver
             List<Integer> path = new ArrayList<>();
             if (current == null) throw new NullPointerException("current");
             if (start == null) throw new NullPointerException("start");
-
+            
             do{
                 path.add(current);
                 current = map.get(current);
@@ -140,6 +142,7 @@ public class ForkJoinSolver
                     return path;
             }while(!start.equals(current));
             path.add(start);
+            
             Collections.reverse(path);
             System.out.println(map);
             System.out.println(path);
